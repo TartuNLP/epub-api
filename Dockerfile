@@ -9,13 +9,16 @@ RUN apk update && \
         git
 
 ENV PYTHONIOENCODING=utf-8
+WORKDIR /app/data
 WORKDIR /app
-VOLUME /app/data
 
 RUN adduser -D app && \
-    chown -R app:app /app
+    chown -R app:app /app && \
+    chown -R app:app /app/data
 USER app
 ENV PATH="/home/app/.local/bin:${PATH}"
+
+VOLUME /app/data
 
 COPY --chown=app:app config/requirements.txt .
 RUN pip install --user -r requirements.txt && \
@@ -23,6 +26,7 @@ RUN pip install --user -r requirements.txt && \
 
 COPY --chown=app:app . .
 
-EXPOSE 5000
+EXPOSE 80
 
-ENTRYPOINT ["uvicorn", "--port", "5000", "--log-config", "config/logging.ini", "--proxy-headers", "app:app"]
+ENTRYPOINT ["uvicorn", "app:app",  "--host", "0.0.0.0", "--port", "80", "--log-config", "config/logging.ini", \
+            "--proxy-headers"]

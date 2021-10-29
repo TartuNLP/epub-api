@@ -22,7 +22,7 @@ class MQConnector:
         self.exchange = None
 
     async def connect(self):
-        connection = await connect(host=self._host, port=self._port, username=self._username, password=self._password)
+        connection = await connect(host=self._host, port=self._port, login=self._username, password=self._password)
         channel = await connection.channel()
         self.exchange = await channel.declare_exchange(self.exchange_name, ExchangeType.DIRECT)
 
