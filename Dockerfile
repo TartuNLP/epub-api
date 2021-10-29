@@ -25,4 +25,4 @@ COPY --chown=app:app . .
 
 EXPOSE 5000
 
-ENTRYPOINT ["uvicorn", "--port", "5000", "--log-config", "config/logging.ini", "app:app"]
+ENTRYPOINT ["uvicorn", "--port", "5000", "--log-config", "config/logging.ini", "--proxy-headers", "app:app"]

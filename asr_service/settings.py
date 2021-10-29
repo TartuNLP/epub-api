@@ -1,18 +1,15 @@
 from os import environ
-from pika import ConnectionParameters, credentials
 
 EXCHANGE = 'speech-to-text'
 
-MQ_PARAMETERS = ConnectionParameters(
-    host=environ.get('MQ_HOST', 'localhost'),
-    port=int(environ.get('MQ_PORT', '5672')),
-    credentials=credentials.PlainCredentials(
-        username=environ.get('MQ_USERNAME', 'guest'),
-        password=environ.get('MQ_PASSWORD', 'guest')
-    )
-)
+MQ_HOST=environ.get('MQ_HOST', 'localhost')
+MQ_PORT=int(environ.get('MQ_PORT', '5672'))
+MQ_USERNAME=environ.get('MQ_USERNAME', 'guest')
+MQ_PASSWORD=environ.get('MQ_PASSWORD', 'guest')
 
-DATA_PATH = environ.get('DATA_PATH', '/app/data')
+MQ_TIMEOUT = int(environ.get('MESSAGE_TIMEOUT', 60000)) # 10 min
+
+DATA_PATH = environ.get('DATA_PATH', './data')
 
 ASR_USERNAME = environ.get('ASR_USERNAME', 'user')
 ASR_PASSWORD = environ.get('ASR_PASSWORD', 'pass')
