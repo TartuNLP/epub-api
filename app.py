@@ -1,4 +1,3 @@
-import logging
 import os
 import uuid
 from datetime import datetime
@@ -8,12 +7,10 @@ from fastapi import FastAPI, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 
-from asr_service.models import TranscriptionWorkerOutput, JobInfo, State, TranscriptionResult, Language
-from asr_service.mq_connector import MQConnector
-from asr_service.auth import Auth
-from asr_service import settings
-
-logger = logging.getLogger("uvicorn.error")
+from asr_api.models import TranscriptionWorkerOutput, JobInfo, State, TranscriptionResult, Language
+from asr_api.mq_connector import MQConnector
+from asr_api.auth import Auth
+from asr_api import settings
 
 app = FastAPI(
     title="ASR Service",
@@ -38,13 +35,15 @@ mq_connector = MQConnector(host=settings.MQ_HOST,
                            exchange_name=settings.EXCHANGE,
                            message_timeout=settings.MQ_TIMEOUT)
 
-db_connector = None  # TODO
-
 
 @app.on_event("startup")
-async def mq_connect():
+async def startup():
     await mq_connector.connect()
-    # await db_connector.connect() TODO
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await mq_connector.disconnect()
 
 
 # TODO content limit
@@ -53,15 +52,15 @@ async def new_job(file: UploadFile = File(..., media_type="audio/wav"),
                   language: str = Form(default=Language.estonian, description="Input language ISO 2-letter code.")):
     job_id = str(uuid.uuid4())
     filename = file.filename
-    created = str(datetime.now())
+    created = datetime.now()
 
+    # TODO verify file extension
     async with aiofiles.open(os.path.join(settings.DATA_PATH, f"{job_id}.wav"), 'wb') as out_file:
         content = await file.read()
         await out_file.write(content)
 
     # TODO Job info to DB
-    # TODO Post job info to RabbitMQ
-    await mq_connector.publish_request(job_id, language)
+    await mq_connector.publish_request(job_id, file_extension="wav", language=language)
 
     return JobInfo(
         job_id=job_id,
@@ -69,7 +68,7 @@ async def new_job(file: UploadFile = File(..., media_type="audio/wav"),
         created_at=created,
         state_changed=created,
         state=State.created,
-        language=language
+        language=Language(language)
     )
 
 
@@ -93,7 +92,7 @@ async def get_transcription(job_id: str):
     # TODO set to "done"
     return TranscriptionResult(
         transcription=content,
-        # job_info = None # TODO
+        # TODO job_info = None
     )
 
 

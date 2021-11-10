@@ -23,8 +23,8 @@ class JobInfo(BaseModel):
                         example="08d99935-6ffd-4780-870a-d6f0cc863d77")
     created_at: datetime = Field(...,
                                  description="Job creation time.")
-    state_changed: str = Field(...,
-                               description="Last state change time.")
+    state_changed: datetime = Field(...,
+                                    description="Last state change time.")
     language: Language = Field(Language.estonian,
                                description="Input language ISO 2-letter code.")
     file_name: str = Field(...,
@@ -48,4 +48,4 @@ class TranscriptionResult(BaseModel):
     transcription: str = Field(...,
                                description="Transcribed text.",
                                example="Tere!")
-    #job_info: JobInfo TODO
+    # job_info: JobInfo TODO

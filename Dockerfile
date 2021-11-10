@@ -9,6 +9,8 @@ RUN apk update && \
         git
 
 ENV PYTHONIOENCODING=utf-8
+ENV CONFIGURATION=production
+
 WORKDIR /app/data
 WORKDIR /app
 
@@ -28,5 +30,13 @@ COPY --chown=app:app . .
 
 EXPOSE 80
 
-ENTRYPOINT ["uvicorn", "app:app",  "--host", "0.0.0.0", "--port", "80", "--log-config", "config/logging.ini", \
-            "--proxy-headers"]
+RUN echo \
+    "if [ \$CONFIGURATION == \"debug\" ]; \
+    then \
+      uvicorn app:app --host 0.0.0.0 --port 80 --log-config config/logging.debug.ini --proxy-headers; \
+    else \
+      uvicorn app:app --host 0.0.0.0 --port 80 --log-config config/logging.ini --proxy-headers; \
+    fi" > entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
+
