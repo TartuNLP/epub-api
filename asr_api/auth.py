@@ -4,6 +4,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 security = HTTPBasic()
 
+
 class Auth:
     def __init__(self, username, password):
         self.username = username

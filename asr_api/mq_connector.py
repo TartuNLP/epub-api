@@ -18,6 +18,7 @@ class MQConnector:
         self.exchange_name = exchange_name
 
         self.connection = None
+        self.channel = None
         self.exchange = None
 
     async def connect(self):
@@ -27,8 +28,8 @@ class MQConnector:
             login=self._username,
             password=self._password
         )
-        channel = await self.connection.channel()
-        self.exchange = await channel.declare_exchange(self.exchange_name, ExchangeType.DIRECT)
+        self.channel = await self.connection.channel()
+        self.exchange = await self.channel.declare_exchange(self.exchange_name, ExchangeType.DIRECT)
 
     async def disconnect(self):
         await self.connection.close()
@@ -36,12 +37,18 @@ class MQConnector:
     async def publish_request(self, correlation_id: str, file_extension: str, language: str):
         body = json.dumps({"correlation_id": correlation_id,
                            "file_extension": file_extension}).encode()
-        await self.exchange.publish(
-            Message(
-                body,
-                correlation_id=correlation_id,
-                expiration=self.message_timeout
-            ),
-            routing_key=f"{self.exchange_name}.{language}"
+        message = Message(
+            body,
+            content_type='application/json',
+            correlation_id=correlation_id,
+            expiration=self.message_timeout
         )
+
+        try:
+            await self.exchange.publish(message, routing_key=f"{self.exchange_name}.{language}")
+        except Exception as e:
+            LOGGER.exception(e)
+            LOGGER.info("Attempting to restore the channel.")
+            await self.channel.reopen()
+            await self.exchange.publish(message, routing_key=f"{self.exchange_name}.{language}")
         LOGGER.info(f"Sent request: {{id: {correlation_id}, routing_key: {self.exchange_name}.{language}}}")
