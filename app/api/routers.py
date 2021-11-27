@@ -14,7 +14,8 @@ from app.rabbitmq import publish
 router = APIRouter()
 
 
-@router.post('/', response_model=Job, description="Submit a new ASR job.", status_code=202)
+@router.post('/', response_model=Job, response_model_exclude_none=True,
+             description="Submit a new ASR job.", status_code=202)
 async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
                      language: str = Form(default=Language.ESTONIAN, description="Input language ISO 2-letter code."),
                      session: AsyncSession = Depends(database.get_session)):
