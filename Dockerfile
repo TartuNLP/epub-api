@@ -11,7 +11,7 @@ RUN apk update && \
 
 ENV PYTHONIOENCODING=utf-8
 ENV CONFIGURATION=production
-ENV ROOT_PATH=""
+ENV ENDPOINT_PATH=""
 
 WORKDIR /app/data
 WORKDIR /app

@@ -20,15 +20,17 @@ The following environment variables should be specified when running the contain
 - `MYSQL_USERNAME` - MySQL username
 - `MYSQL_PASSWORD` - MySQL password
 - `MYSQL_DATABASE` - MySQL database name. The user specified above must already have access to this database beforehand.
-Initialization and migrations will be handled automatically by this service.
-- `API_USERNAME` - username that the ASR worker component will use to authenticate itself (to download audio and return 
-transcriptions)
-- `API_PASSWORD` - password that the ASR worker component will use to authenticate itself 
+  Initialization and migrations will be handled automatically by this service.
+- `API_USERNAME` - username that the ASR worker component will use to authenticate itself (to download audio and return
+  transcriptions)
+- `API_PASSWORD` - password that the ASR worker component will use to authenticate itself
+- `ENDPOINT_PATH` - the endpoint path prefix if the API is deployed on a non-root path. For example,
+  if `www.example.com/speech-to-text` is used, the value should be `/speech-to-text`.
 - `CONFIGURATION` (optional) - if value is `debug` logging will be more detailed, this value should not be used in
   production environments where user input should not be logged.
 
-The service is available on port `80`. The API documentation is available under the `\docs` endpoint.
+The service is available on port `80`. The API documentation is available under the `/docs` endpoint.
 
-The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `speech-to-text` 
-will be used and requests will be sent to the worker using the routing key `speech-to-text.{lang}` where `{lang}` 
+The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `speech-to-text`
+will be used and requests will be sent to the worker using the routing key `speech-to-text.{lang}` where `{lang}`
 refers to the 2-letter ISO langauge code (for example `speech-to-text.et`).
