@@ -29,6 +29,8 @@ The following environment variables should be specified when running the contain
 - `CONFIGURATION` (optional) - if value is `debug` logging will be more detailed, this value should not be used in
   production environments where user input should not be logged.
 
+The container uses a volume mounted at `/app/data` to temporarily store audio files and their transcriptions.
+
 The service is available on port `80`. The API documentation is available under the `/docs` endpoint.
 
 The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `speech-to-text`
