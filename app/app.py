@@ -8,7 +8,7 @@ from app.cleanup import cleanup
 
 app = FastAPI(
     title="ASR Service",
-    version="0.1.0",
+    version="0.2.1",
     description="A service that performs automatic speech recognition (ASR) on uploaded audio files."
 )
 

@@ -18,8 +18,8 @@ class APISettings(BaseSettings):
 class MQSettings(BaseSettings):
     host: str = 'localhost'
     port: int = 5672
-    username: str = 'user'
-    password: str = 'pass'
+    username: str = 'guest'
+    password: str = 'guest'
     exchange: str = 'speech-to-text'
     timeout: int = 600000  # 10 minutes
 
