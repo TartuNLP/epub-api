@@ -12,7 +12,7 @@ from app.database import Job
 LOGGER = logging.getLogger(__name__)
 
 
-async def create_job(session: AsyncSession, job_id: str, file_name: str, language: str) -> schemas.Job:
+async def create_job(session: AsyncSession, job_id: str, file_name: str, language: str) -> schemas.JobInfo:
     job_info = Job(
         job_id=job_id,
         file_name=file_name,
@@ -23,7 +23,7 @@ async def create_job(session: AsyncSession, job_id: str, file_name: str, languag
     session.add(job_info)
     await session.commit()
     await session.refresh(job_info)
-    return job_info.to_schema()
+    return job_info.to_job_info()
 
 
 async def _read_job(session: AsyncSession, job_id) -> Job:
@@ -37,20 +37,20 @@ async def _read_job(session: AsyncSession, job_id) -> Job:
     return job_info
 
 
-async def read_job(session: AsyncSession, job_id) -> schemas.Job:
+async def read_job(session: AsyncSession, job_id) -> schemas.Result:
     job_info = await _read_job(session, job_id)
-    return job_info.to_schema()
+    return job_info.to_result()
 
 
 async def update_job(session: AsyncSession, job_id: str, state: State,
-                     error_message: str = None) -> schemas.Job:
+                     error_message: str = None) -> schemas.JobInfo:
     job_info = await _read_job(session, job_id)
     job_info.state = state
     if error_message is not None:
         job_info.error_message = error_message
     await session.commit()
     await session.refresh(job_info)
-    return job_info.to_schema()
+    return job_info.to_job_info()
 
 
 async def delete_job():

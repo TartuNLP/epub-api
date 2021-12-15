@@ -1,4 +1,4 @@
-FROM python:3.9-alpine
+FROM python:3.10-alpine
 
 # Install system dependencies
 RUN apk update && \
@@ -10,8 +10,6 @@ RUN apk update && \
         git
 
 ENV PYTHONIOENCODING=utf-8
-ENV CONFIGURATION=production
-ENV ENDPOINT_PATH=""
 
 WORKDIR /app/data
 WORKDIR /app
@@ -22,8 +20,6 @@ RUN adduser -D app && \
 USER app
 ENV PATH="/home/app/.local/bin:${PATH}"
 
-VOLUME /app/data
-
 COPY --chown=app:app requirements.txt .
 RUN pip install --user -r requirements.txt && \
     rm requirements.txt
@@ -32,5 +28,6 @@ COPY --chown=app:app . .
 
 EXPOSE 80
 
-ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
+ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80", "--proxy-headers"]
+CMD ["--log-config", "logging/logging.ini"]
 

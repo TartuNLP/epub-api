@@ -6,7 +6,11 @@ from pydantic import BaseModel, Field
 from app.api import Language, State
 
 
-class Job(BaseModel):
+class ErrorMessage(BaseModel):
+    detail: str = Field(description="Human-readable error message.")
+
+
+class JobInfo(BaseModel):
     job_id: str = Field(...,
                         description="Randomly generated job UUID.",
                         example="08d99935-6ffd-4780-870a-d6f0cc863d77")
@@ -22,18 +26,20 @@ class Job(BaseModel):
     state: str = Field(...,
                        description="Job state.",
                        example=State.QUEUED)
-    error_message: Optional[str] = Field(None,
-                                         description="An optional human-readable error message.",
-                                         example="Unexpected file type.")
-    transcription: str = Field(None,
-                               description="Transcribed text.",
-                               example="Tere!")
 
     class Config:
         orm_mode = True
 
 
-class Result(BaseModel):
+class Result(JobInfo):
+    error_message: Optional[str] = Field(None,
+                                         description="An optional human-readable error message.")
+    transcription: str = Field(None,
+                               description="Transcribed text.",
+                               example="Tere!")
+
+
+class WorkerResponse(BaseModel):
     result: str = Field(...,
                         description="Transcribed text segment or an error message in case ASR was not successful. "
                                     "In case the transcription is sent in multiple parts, "

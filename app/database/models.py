@@ -16,5 +16,8 @@ class Job(Base):
     state = Column(Enum(State), nullable=False)
     error_message = Column(String(255), default=None, nullable=True)
 
-    def to_schema(self):
-        return schemas.Job.from_orm(self)
+    def to_job_info(self):
+        return schemas.JobInfo.from_orm(self)
+
+    def to_result(self):
+        return schemas.Result.from_orm(self)

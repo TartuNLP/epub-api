@@ -8,16 +8,18 @@ from starlette.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import database, api_settings
-from app.api import Job, Result, Language, State, get_username
+from app.api import JobInfo, Result, WorkerResponse, Language, State, get_username, ErrorMessage
 from app.rabbitmq import publish
 
 router = APIRouter()
 
 
-@router.post('/', response_model=Job, response_model_exclude_none=True,
-             description="Submit a new ASR job.", status_code=202)
+@router.post('/', response_model=JobInfo, response_model_exclude_none=True,
+             description="Submit a new ASR job.", status_code=202,
+             responses={400: {"model": ErrorMessage}})
 async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
-                     language: str = Form(default=Language.ESTONIAN, description="Input language ISO 2-letter code."),
+                     language: Language = Form(default=Language.ESTONIAN,
+                                               description="Input language ISO 2-letter code."),
                      session: AsyncSession = Depends(database.get_session)):
     if file.content_type != "audio/wav":
         raise HTTPException(400, "Unsupported file type")
@@ -38,8 +40,9 @@ async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
     return job_info
 
 
-@router.get('/{job_id}', response_model=Job, response_model_exclude_none=True)
-async def get_job(job_id: str, session: AsyncSession = Depends(database.get_session)):
+@router.get('/{job_id}', response_model=Result, response_model_exclude_none=True,
+            responses={404: {"model": ErrorMessage}})
+async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     if job_info.state in [State.IN_PROGRESS, State.COMPLETED]:
         async with aiofiles.open(os.path.join(api_settings.storage_path, f"{job_id}.txt"), 'r') as file:
@@ -49,7 +52,10 @@ async def get_job(job_id: str, session: AsyncSession = Depends(database.get_sess
 
 
 @router.get('/{job_id}/audio', response_class=FileResponse,
-            responses={200: {"content": {"audio/wav": {}}, "description": "Returns the original audio file."}})
+            responses={
+                404: {"model": ErrorMessage},
+                200: {"content": {"audio/wav": {}}, "description": "Returns the original audio file."}
+            })
 async def get_audio(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
@@ -58,9 +64,10 @@ async def get_audio(job_id: str, _: str = Depends(get_username),
         return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.wav"))
 
 
-@router.post('/{job_id}/transcription')
+@router.post('/{job_id}/transcription', responses={404: {"model": ErrorMessage},
+                                                   409: {"model": ErrorMessage}})
 async def submit_transcription(job_id: str,
-                               result: Result,
+                               result: WorkerResponse,
                                _: str = Depends(get_username),
                                session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)

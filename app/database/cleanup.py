@@ -11,7 +11,7 @@ LOGGER = logging.getLogger(__name__)
 
 async def _read_expired(session, current_time):
     statement = select(Job.job_id).filter(and_(
-        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_time),
+        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_threshold),
         Job.state.in_([State.QUEUED, State.IN_PROGRESS, State.COMPLETED])
     ))
 
@@ -23,11 +23,11 @@ async def _read_expired(session, current_time):
 
 async def _update_expired(session, current_time):
     to_cancel = and_(
-        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_time),
+        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_threshold),
         Job.state.in_([State.QUEUED, State.IN_PROGRESS])
     )
     to_expire = and_(
-        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_time),
+        Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_threshold),
         Job.state == State.COMPLETED
     )
 
@@ -43,7 +43,7 @@ async def _update_expired(session, current_time):
 
 async def _delete_expired(session, current_time):
     statement = delete(Job).filter(
-        and_(Job.updated_at < (current_time - datetime.timedelta(seconds=api_settings.remove_time)),
+        and_(Job.updated_at < (current_time - datetime.timedelta(seconds=api_settings.removal_threshold)),
              Job.state.in_([State.EXPIRED, State.ERROR])))
 
     await session.execute(statement)

@@ -4,10 +4,9 @@ from pydantic import BaseSettings
 class APISettings(BaseSettings):
     username: str = 'user'
     password: str = 'pass'
-    # todo datetime from str
     cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
-    expiration_time: int = 1200  # 20 minutes - expire / cancel jobs without updates
-    remove_time: int = 86400  # 24 h - remove db records after expiration / cancellation
+    expiration_threshold: int = 1200  # 20 minutes - expire / cancel jobs without updates
+    removal_threshold: int = 86400  # 24 h - remove db records after expiration / cancellation
 
     storage_path: str = './data'
 
