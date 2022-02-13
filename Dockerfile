@@ -28,6 +28,6 @@ COPY --chown=app:app . .
 
 EXPOSE 80
 
-ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80", "--proxy-headers"]
+ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
 CMD ["--log-config", "logging/logging.ini"]
 
