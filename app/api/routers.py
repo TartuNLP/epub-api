@@ -3,7 +3,7 @@ import uuid
 
 import aiofiles
 import aiofiles.os
-from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Header
 from starlette.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,17 +14,29 @@ from app.rabbitmq import publish
 router = APIRouter()
 
 
+def uuid4():
+    """Cryptographycally secure UUID generator."""
+    return uuid.UUID(bytes=os.urandom(16), version=4)
+
+
+def check_uuid(job_id: str):
+    try:
+        uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(400, "Bad UUID provided.")
+
+
 @router.post('/', response_model=JobInfo, response_model_exclude_none=True,
              description="Submit a new ASR job.", status_code=202,
              responses={400: {"model": ErrorMessage}})
-async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
+async def create_job(file: UploadFile = File(..., media_type="audio/wav", regex=r"[\w\- ]\.wav"),
                      language: Language = Form(default=Language.ESTONIAN,
                                                description="Input language ISO 2-letter code."),
                      session: AsyncSession = Depends(database.get_session)):
     if file.content_type != "audio/wav":
         raise HTTPException(400, "Unsupported file type")
 
-    job_id = str(uuid.uuid4())
+    job_id = str(uuid4())
     filename = file.filename
 
     async with aiofiles.open(os.path.join(api_settings.storage_path, f"{job_id}.wav"), 'wb') as out_file:
@@ -41,7 +53,9 @@ async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
 
 
 @router.get('/{job_id}', response_model=Result, response_model_exclude_none=True,
-            responses={404: {"model": ErrorMessage}})
+            responses={404: {"model": ErrorMessage},
+                       400: {"model": ErrorMessage}},
+            dependencies=[Depends(check_uuid)])
 async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     if job_info.state in [State.IN_PROGRESS, State.COMPLETED]:
@@ -55,7 +69,8 @@ async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get
             responses={
                 404: {"model": ErrorMessage},
                 200: {"content": {"audio/wav": {}}, "description": "Returns the original audio file."}
-            })
+            },
+            dependencies=[Depends(check_uuid)])
 async def get_audio(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
@@ -64,12 +79,19 @@ async def get_audio(job_id: str, _: str = Depends(get_username),
         return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.wav"))
 
 
-@router.post('/{job_id}/transcription', responses={404: {"model": ErrorMessage},
-                                                   409: {"model": ErrorMessage}})
+@router.post('/{job_id}/transcription',
+             responses={404: {"model": ErrorMessage},
+                        409: {"model": ErrorMessage},
+                        422: {"model": ErrorMessage}},
+             dependencies=[Depends(check_uuid)])
 async def submit_transcription(job_id: str,
                                result: WorkerResponse,
+                               content_type: str = Header(...),
                                _: str = Depends(get_username),
                                session: AsyncSession = Depends(database.get_session)):
+    if content_type != "application/json":
+        raise HTTPException(422, "Unsupported content type.")
+
     job_info = await database.read_job(session, job_id)
     if job_info.state == State.IN_PROGRESS:
         if result.success:

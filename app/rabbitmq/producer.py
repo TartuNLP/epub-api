@@ -27,4 +27,3 @@ async def publish(correlation_id: str, file_extension: str, language: str):
         await mq_session.channel.reopen()
         await mq_session.exchange.publish(message, routing_key=f"{mq_settings.exchange}.{language}")
     LOGGER.info(f"Sent request: {{id: {correlation_id}, routing_key: {mq_settings.exchange}.{language}}}")
-    # TODO handle dead letters

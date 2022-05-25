@@ -10,6 +10,6 @@ db_engine = create_async_engine(f'mysql+aiomysql://'
 session_maker = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def get_session() -> AsyncSession:
+async def get_session():
     async with session_maker() as session:
         yield session
