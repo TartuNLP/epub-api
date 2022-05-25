@@ -6,7 +6,7 @@ requests to ASR workers via RabbitMQ and stores job info in a MySQL database.
 ### Setup
 
 The API can be deployed using the docker image published alongside the repository. The API is designed to work together
-with our [ASR worker](https://github.com/TartuNLP/speech-to-text-worker) worker containers and a RabbitMQ message
+with our [ASR worker](https://github.com/TartuNLP/speech-to-text-worker) containers and a RabbitMQ message
 broker. The container should have the following configuration specified:
 
 Volumes:
@@ -38,13 +38,14 @@ Volumes:
     - `API_REMOVAL_THRESHOLD` (optional) - number of seconds after expiration when the database record for the job is
       deleted (`86400` by default)
 
-The entrypoint of the container is `["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80", "--proxy-headers"]`. The
-default `CMD` is used to define logging configuration `["--log-config", "logging/logging.ini"]` which can be potentially
-overridden to define different [Uvicorn parameters](https://www.uvicorn.org/deployment/). For
+The entrypoint of the container first runs the database migration and then starts the server
+with `uvicorn app:app --host 0.0.0.0 --proxy-headers --log-config logging/logging.ini`. The
+`CMD` parameter can be used to define additional [Uvicorn parameters](https://www.uvicorn.org/deployment/). For
 example, `["--log-config", "logging/debug.ini", "--root-path", "/api/speech-to-text"]`
-enables debug logging and allows the API to be deployed to the non-root path `/api/speech-to-text`.
+enables debug logging (as the last `--log-config` flag is used) and allows the API to be deployed to the non-root
+path `/api/speech-to-text`.
 
-The service is available on port `80`. The API documentation is available under the `/docs` endpoint.
+The service is available on port `8000`. The API documentation is available under the `/docs` endpoint.
 
 The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `speech-to-text`
 will be used and requests will be sent to the worker using the routing key `speech-to-text.{lang}` where `{lang}`

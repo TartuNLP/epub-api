@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 
 import aiofiles
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import database, api_settings
 from app.api import JobInfo, Result, WorkerResponse, Language, State, get_username, ErrorMessage
 from app.rabbitmq import publish
+
+FILENAME_RE = re.compile(r"[\w\- ]+\.wav")
 
 router = APIRouter()
 
@@ -29,12 +32,17 @@ def check_uuid(job_id: str):
 @router.post('/', response_model=JobInfo, response_model_exclude_none=True,
              description="Submit a new ASR job.", status_code=202,
              responses={400: {"model": ErrorMessage}})
-async def create_job(file: UploadFile = File(..., media_type="audio/wav", regex=r"[\w\- ]\.wav"),
+async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
                      language: Language = Form(default=Language.ESTONIAN,
                                                description="Input language ISO 2-letter code."),
                      session: AsyncSession = Depends(database.get_session)):
     if file.content_type != "audio/wav":
         raise HTTPException(400, "Unsupported file type")
+
+    if not FILENAME_RE.fullmatch(file.filename):
+        raise HTTPException(400, "Filename contains unsuitable characters "
+                                 "(allowed: letters, numbers, spaces, undescores) "
+                                 "or does not end with '.wav'")
 
     job_id = str(uuid4())
     filename = file.filename

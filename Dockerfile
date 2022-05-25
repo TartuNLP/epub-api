@@ -14,9 +14,11 @@ ENV PYTHONIOENCODING=utf-8
 WORKDIR /app/data
 WORKDIR /app
 
-RUN adduser -D app && \
+RUN addgroup -S app && \
+    adduser -S -D -G app app && \
     chown -R app:app /app && \
     chown -R app:app /app/data
+
 USER app
 ENV PATH="/home/app/.local/bin:${PATH}"
 
@@ -26,8 +28,7 @@ RUN pip install --user -r requirements.txt && \
 
 COPY --chown=app:app . .
 
-EXPOSE 80
+EXPOSE 8000
 
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
-CMD ["--log-config", "logging/logging.ini"]
 
