@@ -2,6 +2,7 @@ from pydantic import BaseSettings
 
 
 class APISettings(BaseSettings):
+    version: str
     username: str = 'user'
     password: str = 'pass'
     cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
@@ -20,7 +21,7 @@ class MQSettings(BaseSettings):
     username: str = 'guest'
     password: str = 'guest'
     exchange: str = 'speech-to-text'
-    timeout: int = 600000  # 10 minutes
+    timeout: int = 1200000  # 120 minutes
 
     class Config:
         env_prefix = 'mq_'

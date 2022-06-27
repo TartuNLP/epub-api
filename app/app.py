@@ -1,6 +1,8 @@
-from fastapi import FastAPI, Request
+import logging
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import api_settings
 from app.rabbitmq import mq_session
 from app.database import db_engine
 from app.api import router
@@ -8,7 +10,7 @@ from app.cleanup import cleanup
 
 app = FastAPI(
     title="ASR Service",
-    version="1.0.2",
+    version=api_settings.version,
     description="A service that performs automatic speech recognition (ASR) on uploaded audio files."
 )
 
@@ -41,5 +43,30 @@ async def shutdown():
     await mq_session.disconnect()
     await db_engine.dispose()
 
+
+@app.get('/health/readiness', include_in_schema=False)
+@app.get('/health/startup', include_in_schema=False)
+@app.get('/health/liveness', include_in_schema=False)
+async def health_check():
+    # Returns 200 the connection to RabbitMQ and DB connection is up
+    if mq_session.channel is None or mq_session.channel.is_closed:
+        raise HTTPException(500)
+    try:
+        conn = await db_engine.connect()
+        await conn.close()
+    except Exception as e:
+        print(e)
+        raise HTTPException(500)
+
+    return "OK"
+
+
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("/health") == -1
+
+
+# Filter out /endpoint
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 app.include_router(router)

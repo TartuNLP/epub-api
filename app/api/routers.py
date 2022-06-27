@@ -1,10 +1,11 @@
 import os
 import re
 import uuid
+import logging
 
 import aiofiles
 import aiofiles.os
-from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Header
+from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Header, Response
 from starlette.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +13,9 @@ from app import database, api_settings
 from app.api import JobInfo, Result, WorkerResponse, Language, State, get_username, ErrorMessage
 from app.rabbitmq import publish
 
-FILENAME_RE = re.compile(r"[\w\- ]+\.wav")
+FILENAME_RE = re.compile(r"[\w\- ]+\.wav|blob")
+
+LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -32,14 +35,16 @@ def check_uuid(job_id: str):
 @router.post('/', response_model=JobInfo, response_model_exclude_none=True,
              description="Submit a new ASR job.", status_code=202,
              responses={400: {"model": ErrorMessage}})
-async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
-                     language: Language = Form(default=Language.ESTONIAN,
+async def create_job(response: Response,
+                     file: UploadFile = File(..., media_type="audio/wav"),
+                     language: Language = Form(default=Language.ESTONIAN,  # todo from config
                                                description="Input language ISO 2-letter code."),
                      session: AsyncSession = Depends(database.get_session)):
     if file.content_type != "audio/wav":
         raise HTTPException(400, "Unsupported file type")
 
     if not FILENAME_RE.fullmatch(file.filename):
+        LOGGER.debug(f"Bad filename: {file.filename}")
         raise HTTPException(400, "Filename contains unsuitable characters "
                                  "(allowed: letters, numbers, spaces, undescores) "
                                  "or does not end with '.wav'")
@@ -57,6 +62,7 @@ async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
     job_info = await database.create_job(session, job_id, filename, language)
     await publish(job_id, file_extension="wav", language=language)
 
+    response.headers['Content-Disposition'] = 'attachment; filename="api.json"'
     return job_info
 
 
@@ -64,12 +70,13 @@ async def create_job(file: UploadFile = File(..., media_type="audio/wav"),
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage}},
             dependencies=[Depends(check_uuid)])
-async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
+async def get_job_info(response: Response, job_id: str, session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     if job_info.state in [State.IN_PROGRESS, State.COMPLETED]:
         async with aiofiles.open(os.path.join(api_settings.storage_path, f"{job_id}.txt"), 'r') as file:
             content = await file.read()
         job_info.transcription = content.strip()
+    response.headers['Content-Disposition'] = 'attachment; filename="api.json"'
     return job_info
 
 
@@ -84,7 +91,7 @@ async def get_audio(job_id: str, _: str = Depends(get_username),
     job_info = await database.read_job(session, job_id)
     if job_info.state in [State.QUEUED, State.IN_PROGRESS]:
         await database.update_job(session, job_id, State.IN_PROGRESS)
-        return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.wav"))
+        return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.wav"), filename=f"{job_id}.wav")
 
 
 @router.post('/{job_id}/transcription',

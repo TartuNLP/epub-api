@@ -12,12 +12,15 @@ broker. The container should have the following configuration specified:
 Volumes:
 
 - `/app/data` - used to temporarily store audio files and their transcriptions Environment variables:
+
+Environment variables:
+
 - Connection configuration to connect to a RabbitMQ service broker:
     - `MQ_USERNAME` - RabbitMQ username
     - `MQ_PASSWORD` - RabbitMQ user password
     - `MQ_HOST` - RabbitMQ host
     - `MQ_PORT` (optional) - RabbitMQ port (`5672` by default)
-    - `MQ_TIMEOUT` (optional) - Message timeout in milliseconds (`600000` by default)
+    - `MQ_TIMEOUT` (optional) - Message timeout in milliseconds (`1200000` by default)
     - `MQ_EXCHANGE` (optional) - RabbitMQ exchange name (`speech-to-text` by default)
 - Configuration to connect to a MySQL database:
     - `MYSQL_HOST` - MySQL hostname
@@ -37,6 +40,15 @@ Volumes:
       default)
     - `API_REMOVAL_THRESHOLD` (optional) - number of seconds after expiration when the database record for the job is
       deleted (`86400` by default)
+
+Build-time arguments / environment variables:
+- `API_VERSION` - A semantic version number, displayed in the docs.
+
+Endpoints for healthcheck probes:
+
+- `/health/startup`
+- `/health/readiness`
+- `/health/liveness`
 
 The entrypoint of the container first runs the database migration and then starts the server
 with `uvicorn app:app --host 0.0.0.0 --proxy-headers --log-config logging/logging.ini`. The
