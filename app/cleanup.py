@@ -23,6 +23,8 @@ async def _run():
             await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.txt"))
             await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.wav"))
 
+        LOGGER.info("Cleanup finished.")
+
 
 class Cleanup:
     _running = False

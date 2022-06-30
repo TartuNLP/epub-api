@@ -5,7 +5,7 @@ class APISettings(BaseSettings):
     version: str
     username: str = 'user'
     password: str = 'pass'
-    cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
+    cleanup_interval: int = 60  # 1 minute - run db & file cleanup
     expiration_threshold: int = 1200  # 20 minutes - expire / cancel jobs without updates
     removal_threshold: int = 86400  # 24 h - remove db records after expiration / cancellation
 
@@ -21,7 +21,7 @@ class MQSettings(BaseSettings):
     username: str = 'guest'
     password: str = 'guest'
     exchange: str = 'speech-to-text'
-    timeout: int = 1200000  # 120 minutes
+    timeout: int = 1200  # 20 minutes
 
     class Config:
         env_prefix = 'mq_'

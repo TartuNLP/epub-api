@@ -20,7 +20,7 @@ Environment variables:
     - `MQ_PASSWORD` - RabbitMQ user password
     - `MQ_HOST` - RabbitMQ host
     - `MQ_PORT` (optional) - RabbitMQ port (`5672` by default)
-    - `MQ_TIMEOUT` (optional) - Message timeout in milliseconds (`1200000` by default)
+    - `MQ_TIMEOUT` (optional) - Message timeout in seconds (`1200` by default)
     - `MQ_EXCHANGE` (optional) - RabbitMQ exchange name (`speech-to-text` by default)
 - Configuration to connect to a MySQL database:
     - `MYSQL_HOST` - MySQL hostname
@@ -34,7 +34,7 @@ Environment variables:
       return transcriptions)
     - `API_PASSWORD` - password that the ASR worker component will use to authenticate itself
 - Cleanup configuration for files and database records:
-    - `API_CLEANUP_INTERVAL` (optional) - how often cleanup is initiated (in seconds, `600` by default)
+    - `API_CLEANUP_INTERVAL` (optional) - how often cleanup is initiated (in seconds, `60` by default)
     - `API_EXPIRATION_THRESHOLD` (optional) - number of seconds after which the job is marked as cancelled (if the job
       was still in progress) or expired (if the job was done) in the database and its files are deleted (`1200` by
       default)
