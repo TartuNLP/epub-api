@@ -9,7 +9,7 @@ from app.rabbitmq import mq_session
 LOGGER = logging.getLogger(__name__)
 
 
-async def publish(correlation_id: str, file_extension: str, language: str):
+async def publish(correlation_id: str, file_extension: str):
     body = json.dumps({"correlation_id": correlation_id,
                        "file_extension": file_extension}).encode()
     message = Message(
@@ -20,10 +20,10 @@ async def publish(correlation_id: str, file_extension: str, language: str):
     )
 
     try:
-        await mq_session.exchange.publish(message, routing_key=f"{mq_settings.exchange}.{language}")
+        await mq_session.exchange.publish(message, routing_key=f"{mq_settings.exchange}")
     except Exception as e:
         LOGGER.exception(e)
         LOGGER.info("Attempting to restore the channel.")
         await mq_session.channel.reopen()
-        await mq_session.exchange.publish(message, routing_key=f"{mq_settings.exchange}.{language}")
-    LOGGER.info(f"Sent request: {{id: {correlation_id}, routing_key: {mq_settings.exchange}.{language}}}")
+        await mq_session.exchange.publish(message, routing_key=f"{mq_settings.exchange}")
+    LOGGER.info(f"Sent request: {{id: {correlation_id}, routing_key: {mq_settings.exchange}}}")

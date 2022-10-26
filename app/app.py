@@ -1,3 +1,4 @@
+from ipaddress import ip_address
 import logging
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,9 +10,9 @@ from app.api import router
 from app.cleanup import cleanup
 
 app = FastAPI(
-    title="ASR Service",
-    version=api_settings.version,
-    description="A service that performs automatic speech recognition (ASR) on uploaded audio files."
+    title="epub-api",
+    version='2.1.0',#api_settings.version,
+    description="A service that performs text-to-speech on uploaded epub audio book."
 )
 
 app.add_middleware(

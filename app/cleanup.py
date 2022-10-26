@@ -20,8 +20,9 @@ async def _run():
         LOGGER.debug(f"Removing files for: {expired_jobs}")
 
         for job_id in expired_jobs:
-            await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.txt"))
-            await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.wav"))
+            await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.zip"))
+            await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.json"))
+            await aiofiles.os.remove(os.path.join(api_settings.storage_path, f"{job_id}.epub"))
 
         LOGGER.info("Cleanup finished.")
 

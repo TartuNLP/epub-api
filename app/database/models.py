@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, DateTime, Enum
+from email.policy import default
+from sqlalchemy import Column, String, Float, DateTime, Enum
 from sqlalchemy.sql import func, text
 
 from app.database import Base
@@ -11,8 +12,9 @@ class Job(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False,
                         server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
-    language = Column(String(8), default="et", nullable=False)
     file_name = Column(String(255), nullable=False)
+    speaker = Column(String(255), default="mari", nullable=False)
+    speed = Column(Float(), default=1.0, nullable=False)
     state = Column(Enum(State), nullable=False)
     error_message = Column(String(255), default=None, nullable=True)
 

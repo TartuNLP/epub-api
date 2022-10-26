@@ -12,11 +12,12 @@ from app.database import Job
 LOGGER = logging.getLogger(__name__)
 
 
-async def create_job(session: AsyncSession, job_id: str, file_name: str, language: str) -> schemas.JobInfo:
+async def create_job(session: AsyncSession, job_id: str, file_name: str, speaker: str, speed: float) -> schemas.JobInfo:
     job_info = Job(
         job_id=job_id,
         file_name=file_name,
-        language=language,
+        speaker=speaker,
+        speed=speed,
         state=State.QUEUED
     )
 

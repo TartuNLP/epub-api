@@ -1,0 +1,56 @@
+version: '3'
+services:
+  rabbitmq:
+    image: 'rabbitmq:3.6-management-alpine'
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    ports:
+      - '15672:15672'
+      - '5672:5672'
+  mysql:
+    image: 'mysql:8.0.27'
+    restart: unless-stopped
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    ports:
+      - '3306:3306'
+  epub-api:
+    image: epub-api:latest
+    ports:
+      - '80:8000'
+    environment:
+      - MQ_HOST=rabbitmq
+      - MQ_PORT=5672
+      - MQ_USERNAME=${RABBITMQ_USER}
+      - MQ_PASSWORD=${RABBITMQ_PASS}
+      - API_USERNAME=${API_USER}
+      - API_PASSWORD=${API_PASS}
+      - MYSQL_HOST=mysql
+      - MYSQL_USERNAME=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    depends_on:
+      - rabbitmq
+      - mysql
+    restart: unless-stopped
+  epub-worker:
+    image: epub-worker:latest
+    ports:
+      - '9000:9000'
+    environment:
+      - MQ_HOST=rabbitmq
+      - MQ_PORT=5672
+      - MQ_USERNAME=${RABBITMQ_USER}
+      - MQ_PASSWORD=${RABBITMQ_PASS}
+      - HTTP_HOST=localhost
+      - HTTP_USERNAME=${API_USER}
+      - HTTP_PASSWORD=${API_PASS}
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+    shm_size: 4GB

@@ -1,8 +1,16 @@
 from enum import Enum
+from socket import VM_SOCKETS_INVALID_VERSION
 
 
-class Language(str, Enum):
-    ESTONIAN = "et"
+class Speaker(str, Enum):
+    Albert = "albert"
+    Mari = "mari"
+    Kalev = "kalev"
+    Vesta = "vesta"
+    Kylli = "kylli"
+    Külli = "kylli"
+    Meelis = "meelis"
+
 
 
 class State(str, Enum):
