@@ -19,10 +19,8 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository (with submodules)
+      - name: Checkout repository
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Extract semver
         id: get_version

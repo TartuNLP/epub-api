@@ -1,12 +1,12 @@
-# Automatic Speech Recognition API
+# Epub API
 
-An API for using the automatic speech recognition (ASR) service. The API accepts speech recognition jobs, forwards the
-requests to ASR workers via RabbitMQ and stores job info in a MySQL database.
+An API for using the (epub) e-book to audiobook service. The API accepts e-book audio synthesis jobs, forwards the
+requests to epub worker via RabbitMQ and stores job info in a MySQL database.
 
 ### Setup
 
 The API can be deployed using the docker image published alongside the repository. The API is designed to work together
-with our [ASR worker](https://github.com/TartuNLP/speech-to-text-worker) containers and a RabbitMQ message
+with our [Epub worker](https://github.com/TartuNLP/epub-worker) containers and a RabbitMQ message
 broker. The container should have the following configuration specified:
 
 Volumes:
@@ -29,10 +29,10 @@ Environment variables:
     - `MYSQL_PASSWORD` - MySQL password
     - `MYSQL_DATABASE` - MySQL database name. The user specified above must already have access to this database
       beforehand. Initialization and migrations will be handled automatically by this service.
-- Authentication parameters for the ASR worker:
-    - `API_USERNAME` - username that the ASR worker component will use to authenticate itself (to download audio and
-      return transcriptions)
-    - `API_PASSWORD` - password that the ASR worker component will use to authenticate itself
+- Authentication parameters for the Epub worker:
+    - `API_USERNAME` - username that the Epub worker component will use to authenticate itself (to download epub and
+      return audiobook)
+    - `API_PASSWORD` - password that the Epub worker component will use to authenticate itself
 - Cleanup configuration for files and database records:
     - `API_CLEANUP_INTERVAL` (optional) - how often cleanup is initiated (in seconds, `60` by default)
     - `API_EXPIRATION_THRESHOLD` (optional) - number of seconds after which the job is marked as cancelled (if the job
@@ -53,12 +53,11 @@ Endpoints for healthcheck probes:
 The entrypoint of the container first runs the database migration and then starts the server
 with `uvicorn app:app --host 0.0.0.0 --proxy-headers --log-config logging/logging.ini`. The
 `CMD` parameter can be used to define additional [Uvicorn parameters](https://www.uvicorn.org/deployment/). For
-example, `["--log-config", "logging/debug.ini", "--root-path", "/api/speech-to-text"]`
+example, `["--log-config", "logging/debug.ini", "--root-path", "/api/epub-to-audiobook"]`
 enables debug logging (as the last `--log-config` flag is used) and allows the API to be deployed to the non-root
-path `/api/speech-to-text`.
+path `/api/epub-to-audiobook`.
 
 The service is available on port `8000`. The API documentation is available under the `/docs` endpoint.
 
-The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `speech-to-text`
-will be used and requests will be sent to the worker using the routing key `speech-to-text.{lang}` where `{lang}`
-refers to the 2-letter ISO langauge code (for example `speech-to-text.et`).
+The RabbitMQ connection parameters are set with environment variables. By default, the exchange name `epub-to-audiobook`
+will be used and requests will be sent to the worker.
