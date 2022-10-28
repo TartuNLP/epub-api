@@ -34,9 +34,9 @@ Environment variables:
       return audiobook)
     - `API_PASSWORD` - password that the Epub worker component will use to authenticate itself
 - Cleanup configuration for files and database records:
-    - `API_CLEANUP_INTERVAL` (optional) - how often cleanup is initiated (in seconds, `60` by default)
+    - `API_CLEANUP_INTERVAL` (optional) - how often cleanup is initiated (in seconds, `600` by default)
     - `API_EXPIRATION_THRESHOLD` (optional) - number of seconds after which the job is marked as cancelled (if the job
-      was still in progress) or expired (if the job was done) in the database and its files are deleted (`1200` by
+      was still in progress) or expired (if the job was done) in the database and its files are deleted (`6000` by
       default)
     - `API_REMOVAL_THRESHOLD` (optional) - number of seconds after expiration when the database record for the job is
       deleted (`86400` by default)
