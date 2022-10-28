@@ -5,8 +5,8 @@ class APISettings(BaseSettings):
     version: str = '2.1.0'
     username: str = 'guest'
     password: str = 'guest'
-    cleanup_interval: int = 600  # 1 minute - run db & file cleanup
-    expiration_threshold: int = 1200  # 20 minutes - expire / cancel jobs without updates
+    cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
+    expiration_threshold: int = 6000  # 100 minutes - expire / cancel jobs without updates
     removal_threshold: int = 86400  # 24 h - remove db records after expiration / cancellation
 
     storage_path: str = './data'
