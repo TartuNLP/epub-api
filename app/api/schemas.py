@@ -27,8 +27,8 @@ class JobInfo(BaseModel):
                         description="Speaker voice to synthesize with",
                         example=Speaker.Mari)
     speed: float = Field(...,
-                        description="Speed to synthesize with.",
-                        example=Speaker.Mari)
+                        description="Speed to synthesize with (in range 0.5-2.0).",
+                        example=1.0)
     file_name: str = Field(...,
                         description="Original name of the uploaded file",
                         example="book.epub")

@@ -46,7 +46,9 @@ async def create_job(response: Response,
                      speed: float = Form(default=1.0),
                      session: AsyncSession = Depends(database.get_session)):
     if file.content_type != "application/epub+zip":
-        raise HTTPException(400, "Unsupported file type")
+        raise HTTPException(400, "Unsupported file type.")
+    if speed < 0.5 or speed > 2.0:
+        raise HTTPException(400, "Parameter 'speed' out of range.")
 
     if not FILENAME_RE.fullmatch(file.filename):
         LOGGER.debug(f"Bad filename: {file.filename}")

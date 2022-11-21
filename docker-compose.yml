@@ -11,6 +11,7 @@ services:
       - '5672:5672'
   mysql:
     image: 'mysql:8.0.27'
+    command: --max_allowed_packet=2685000000
     restart: unless-stopped
     environment:
       - MYSQL_USER=${MYSQL_USER}
@@ -47,9 +48,13 @@ services:
       - MQ_PORT=5672
       - MQ_USERNAME=${RABBITMQ_USER}
       - MQ_PASSWORD=${RABBITMQ_PASS}
-      - HTTP_HOST=localhost
+      - EPUB_HOST=${HTTP_HOST}
+      - EPUB_PORT=${HTTP_PORT}
       - HTTP_USERNAME=${API_USER}
       - HTTP_PASSWORD=${API_PASS}
+      - TTS_HOST=api.tartunlp.ai
+      - TTS_PORT=443
+      - TTS_PROTOCOL=https
     depends_on:
       - rabbitmq
     restart: unless-stopped

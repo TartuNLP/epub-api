@@ -6,8 +6,8 @@ class APISettings(BaseSettings):
     username: str = 'guest'
     password: str = 'guest'
     cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
-    expiration_threshold: int = 6000  # 100 minutes - expire / cancel jobs without updates
-    removal_threshold: int = 86400  # 24 h - remove db records after expiration / cancellation
+    expiration_threshold: int = 605_000  # one week - expire / cancel jobs without updates
+    removal_threshold: int = 605_000  # one week - remove db records after expiration / cancellation
 
     storage_path: str = './data'
 
@@ -21,7 +21,7 @@ class MQSettings(BaseSettings):
     username: str = 'guest'
     password: str = 'guest'
     exchange: str = 'epub_to_audiobook'
-    timeout: int = 1200  # 20 minutes
+    timeout: int = 605_000  # one week - remove not consumed jobs from queue
 
     class Config:
         env_prefix = 'mq_'
