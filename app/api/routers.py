@@ -77,6 +77,17 @@ async def create_job(response: Response,
 async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
     return await database.read_job(session, job_id)
 
+'''
+@router.get('/{job_id}/stop', response_model=JobInfo, response_model_exclude_none=True,
+            responses={404: {"model": ErrorMessage},
+                       400: {"model": ErrorMessage}},
+            dependencies=[Depends(check_uuid)])
+async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
+    job_info = await database.read_job(session, job_id)
+    if job_info.state in [State.QUEUED, State.IN_PROGRESS, State.COMPLETED]:
+        await database.update_job(session, job_id, State.EXPIRED)
+    return await database.read_job(session, job_id)
+'''
 
 @router.get('/{job_id}/audiobook', response_class=FileResponse,
             responses={404: {"model": ErrorMessage},
@@ -87,8 +98,9 @@ async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get
 async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     file_path = os.path.join(api_settings.storage_path, f"{job_id}.zip")
-    if job_info.state == State.COMPLETED and os.path.exists(file_path):
-        await database.update_job(session, job_id, State.EXPIRED)
+    if job_info.state in [State.COMPLETED, State.EXPIRED] and os.path.exists(file_path):
+        if job_info.state != State.EXPIRED:
+            await database.update_job(session, job_id, State.EXPIRED)
         return FileResponse(file_path, filename=f"{job_id}.zip")
 
 
