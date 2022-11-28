@@ -70,6 +70,24 @@ async def create_job(response: Response,
     return job_info
 
 
+@router.post('/{job_id}/rerun', response_model=JobInfo, response_model_exclude_none=True,
+             description="Rerun an already present ebook job.", status_code=202,
+             responses={400: {"model": ErrorMessage}})
+async def create_job(response: Response,
+                    job_id: str,
+                    session: AsyncSession = Depends(database.get_session)):
+    try:
+        job_info = await database.read_job(session, job_id)
+    except Exception as e:
+        raise HTTPException(409, f"Job '{job_id}' is not present, cannot rerun.")
+    
+    await database.update_job(session, job_id, State.QUEUED)
+    await publish(job_id, file_extension="epub")
+
+    response.headers['Content-Disposition'] = 'attachment; filename="api.json"'
+    return job_info
+
+
 @router.get('/{job_id}', response_model=JobInfo, response_model_exclude_none=True,
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage}},
@@ -98,9 +116,7 @@ async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get
 async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     file_path = os.path.join(api_settings.storage_path, f"{job_id}.zip")
-    if job_info.state in [State.COMPLETED, State.EXPIRED] and os.path.exists(file_path):
-        if job_info.state != State.EXPIRED:
-            await database.update_job(session, job_id, State.EXPIRED)
+    if job_info.state == State.COMPLETED and os.path.exists(file_path):
         return FileResponse(file_path, filename=f"{job_id}.zip")
 
 
@@ -114,7 +130,8 @@ async def get_epub(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
     if job_info.state in [State.QUEUED, State.IN_PROGRESS]:
-        await database.update_job(session, job_id, State.IN_PROGRESS)
+        if job_info.state == State.QUEUED:
+            await database.update_job(session, job_id, State.IN_PROGRESS)
         return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.epub"), filename=f"{job_id}.epub")
 
 
