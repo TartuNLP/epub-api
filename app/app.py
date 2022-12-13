@@ -11,8 +11,10 @@ from app.cleanup import cleanup
 
 app = FastAPI(
     title="epub-api",
-    version='2.1.0',#api_settings.version,
-    description="A service that performs text-to-speech on uploaded epub audio book."
+    version=api_settings.version if api_settings.version else "dev",
+    description=f'A service that performs text-to-speech on uploaded epub audio book.\n\n\
+        A job without updates expires after {int(api_settings.expiration_threshold/(60*60*24))} days.\n\
+        Job is removed after being expired for {int(api_settings.removal_threshold/(60*60*24))} days.'
 )
 
 app.add_middleware(

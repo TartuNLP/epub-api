@@ -66,7 +66,6 @@ async def create_job(response: Response,
     job_info = await database.create_job(session, job_id, filename, speaker, speed)
     await publish(job_id, file_extension="epub")
 
-    response.headers['Content-Disposition'] = 'attachment; filename="api.json"'
     return job_info
 
 
@@ -84,7 +83,6 @@ async def create_job(response: Response,
     await database.update_job(session, job_id, State.QUEUED)
     await publish(job_id, file_extension="epub")
 
-    response.headers['Content-Disposition'] = 'attachment; filename="api.json"'
     return job_info
 
 

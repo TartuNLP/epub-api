@@ -2,7 +2,7 @@ from pydantic import BaseSettings
 
 
 class APISettings(BaseSettings):
-    version: str = '2.1.0'
+    version: str = '1.0.4'
     username: str = 'guest'
     password: str = 'guest'
     cleanup_interval: int = 600  # 10 minutes - run db & file cleanup
