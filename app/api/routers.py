@@ -123,7 +123,8 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
                 404: {"model": ErrorMessage},
                 200: {"content": {"application/epub+zip": {}}, "description": "Returns the original audio file."}
             },
-            dependencies=[Depends(check_uuid)])
+            dependencies=[Depends(check_uuid)],
+            include_in_schema=False)
 async def get_epub(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
@@ -136,7 +137,8 @@ async def get_epub(job_id: str, _: str = Depends(get_username),
 @router.post('/{job_id}/failed', response_model=JobInfo, response_model_exclude_none=True,
              description="Post error message and fail job.", status_code=202,
              responses={400: {"model": ErrorMessage}},
-             dependencies=[Depends(check_uuid)])
+             dependencies=[Depends(check_uuid)],
+             include_in_schema=False)
 async def submit_audiobook(job_id: str,
                                error: str = Form(default="Failed to synthesize audiobook."),
                                _: str = Depends(get_username),
@@ -152,7 +154,8 @@ async def submit_audiobook(job_id: str,
 @router.post('/{job_id}/audiobook', response_model=JobInfo, response_model_exclude_none=True,
              description="Post audiobook and complete job.", status_code=202,
              responses={400: {"model": ErrorMessage}},
-             dependencies=[Depends(check_uuid)])
+             dependencies=[Depends(check_uuid)],
+             include_in_schema=False)
 async def submit_audiobook(job_id: str,
                                file: UploadFile = File(..., media_type="application/zip"),
                                _: str = Depends(get_username),
