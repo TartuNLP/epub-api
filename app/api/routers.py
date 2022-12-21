@@ -24,6 +24,7 @@ LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
+cancelled_jobs = []
 
 def uuid4():
     """Cryptographycally secure UUID generator."""
@@ -93,17 +94,34 @@ async def create_job(response: Response,
 async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
     return await database.read_job(session, job_id)
 
-'''
-@router.get('/{job_id}/stop', response_model=JobInfo, response_model_exclude_none=True,
+
+@router.get('/{job_id}/stop', response_model=str, response_model_exclude_none=True,
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage}},
             dependencies=[Depends(check_uuid)])
-async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get_session)):
-    job_info = await database.read_job(session, job_id)
-    if job_info.state in [State.QUEUED, State.IN_PROGRESS, State.COMPLETED]:
-        await database.update_job(session, job_id, State.EXPIRED)
-    return await database.read_job(session, job_id)
-'''
+async def stop_job(job_id: str, session: AsyncSession = Depends(database.get_session)):
+    try:
+        job_info = await database.read_job(session, job_id)
+    except:
+        return f'Job {job_id} not found.'
+    if job_info.state in [State.QUEUED, State.IN_PROGRESS]:
+        cancelled_jobs.append(job_id)
+        await database.update_job(session, job_id, State.ERROR, error_message="Job manually stopped.")
+        return f'Job {job_id} successfully cancelled.'
+    return f'Job {job_id} not in queue nor in progress.'
+
+
+@router.get('/{job_id}/check', response_model=bool, response_model_exclude_none=True,
+             description="Check if job is cancelled", status_code=202,
+             responses={400: {"model": ErrorMessage}},
+             dependencies=[Depends(check_uuid)],
+             include_in_schema=False)
+async def check_audiobook(job_id: str, session: AsyncSession = Depends(database.get_session)):
+    if job_id in cancelled_jobs:
+        cancelled_jobs.remove(job_id)
+        return True
+    return False
+
 
 @router.get('/{job_id}/audiobook', response_class=FileResponse,
             responses={404: {"model": ErrorMessage},
