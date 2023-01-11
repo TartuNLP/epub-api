@@ -4,6 +4,7 @@ import os
 import re
 import json
 from tokenize import String
+from typing import Union
 import uuid
 import logging
 
@@ -24,8 +25,6 @@ LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
-cancelled_jobs = []
-
 def uuid4():
     """Cryptographycally secure UUID generator."""
     return uuid.UUID(bytes=os.urandom(16), version=4)
@@ -38,7 +37,7 @@ def check_uuid(job_id: str):
         raise HTTPException(400, "Bad UUID provided.")
 
 
-@router.post('/', response_model=JobInfo, response_model_exclude_none=True,
+@router.post('/', response_model=Union[JobInfo, str], response_model_exclude_none=True,
              description="Submit a new ebook job.", status_code=202,
              responses={400: {"model": ErrorMessage}})
 async def create_job(response: Response,
@@ -46,28 +45,32 @@ async def create_job(response: Response,
                      speaker: Speaker = Form(default=Speaker.Mari),
                      speed: float = Form(default=1.0),
                      session: AsyncSession = Depends(database.get_session)):
-    if file.content_type != "application/epub+zip":
-        raise HTTPException(400, "Unsupported file type.")
-    if speed < 0.5 or speed > 2.0:
-        raise HTTPException(400, "Parameter 'speed' out of range.")
+    try:
+        if file.content_type != "application/epub+zip":
+            raise HTTPException(400, "Unsupported file type.")
+        if speed < 0.5 or speed > 2.0:
+            raise HTTPException(400, "Parameter 'speed' out of range.")
 
-    if not FILENAME_RE.fullmatch(file.filename):
-        LOGGER.debug(f"Bad filename: {file.filename}")
-        raise HTTPException(400, "Filename contains unsuitable characters "
-                                 "(allowed: letters, numbers, spaces, undescores) "
-                                 "or does not end with '.epub'")
+        if not FILENAME_RE.fullmatch(file.filename):
+            LOGGER.debug(f"Bad filename: {file.filename}")
+            raise HTTPException(400, "Filename contains unsuitable characters "
+                                    "(allowed: letters, numbers, spaces, undescores) "
+                                    "or does not end with '.epub'")
 
-    job_id = str(uuid4())
-    filename = file.filename
+        job_id = str(uuid4())
+        filename = file.filename
 
-    async with aiofiles.open(os.path.join(api_settings.storage_path, f"{job_id}.epub"), 'wb') as out_file:
-        content = await file.read()
-        await out_file.write(content)
+        async with aiofiles.open(os.path.join(api_settings.storage_path, f"{job_id}.epub"), 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
 
-    job_info = await database.create_job(session, job_id, filename, speaker, speed)
-    await publish(job_id, file_extension="epub")
+        job_info = await database.create_job(session, job_id, filename, speaker, speed)
+        await publish(job_id, file_extension="epub")
 
-    return job_info
+        return job_info
+    
+    except Exception as e:
+        raise HTTPException(409, str(e))
 
 
 @router.post('/{job_id}/rerun', response_model=JobInfo, response_model_exclude_none=True,
@@ -78,7 +81,7 @@ async def create_job(response: Response,
                     session: AsyncSession = Depends(database.get_session)):
     try:
         job_info = await database.read_job(session, job_id)
-    except Exception as e:
+    except Exception:
         raise HTTPException(409, f"Job '{job_id}' is not present, cannot rerun.")
     
     await database.update_job(session, job_id, State.QUEUED)
@@ -88,6 +91,7 @@ async def create_job(response: Response,
 
 
 @router.get('/{job_id}', response_model=JobInfo, response_model_exclude_none=True,
+            description='Get current info about a job.',
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage}},
             dependencies=[Depends(check_uuid)])
@@ -95,35 +99,37 @@ async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get
     return await database.read_job(session, job_id)
 
 
-@router.get('/{job_id}/stop', response_model=str, response_model_exclude_none=True,
+@router.get('/{job_id}/cancel', response_model=str, response_model_exclude_none=True,
+            description='Cancels an ongoing/scheduled job, expires a completed job.',
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage}},
             dependencies=[Depends(check_uuid)])
-async def stop_job(job_id: str, session: AsyncSession = Depends(database.get_session)):
+async def cancel_job(job_id: str, session: AsyncSession = Depends(database.get_session)):
     try:
         job_info = await database.read_job(session, job_id)
     except:
         return f'Job {job_id} not found.'
     if job_info.state in [State.QUEUED, State.IN_PROGRESS]:
-        cancelled_jobs.append(job_id)
-        await database.update_job(session, job_id, State.ERROR, error_message="Job manually stopped.")
+        await database.update_job(session, job_id, State.ERROR, error_message="Job manually cancelled.")
         return f'Job {job_id} successfully cancelled.'
-    return f'Job {job_id} not in queue nor in progress.'
+    elif job_info.state == State.COMPLETED:
+        await database.update_job(session, job_id, State.EXPIRED, error_message="Job manually expired.")
+        return f'Job {job_id} successfully expired.'
+    return f'Job {job_id} already expired or stopped.'
 
 
 @router.get('/{job_id}/check', response_model=bool, response_model_exclude_none=True,
-             description="Check if job is cancelled", status_code=202,
+             description="Check if job is cancelled or scheduled for rerun", status_code=202,
              responses={400: {"model": ErrorMessage}},
              dependencies=[Depends(check_uuid)],
              include_in_schema=False)
 async def check_audiobook(job_id: str, session: AsyncSession = Depends(database.get_session)):
-    if job_id in cancelled_jobs:
-        cancelled_jobs.remove(job_id)
-        return True
-    return False
+    job_info = await database.read_job(session, job_id)
+    return job_info.state in [State.ERROR, State.QUEUED]
 
 
 @router.get('/{job_id}/audiobook', response_class=FileResponse,
+            description='Get the finished audiobook of a completed job.',
             responses={404: {"model": ErrorMessage},
                        400: {"model": ErrorMessage},
                        200: {"content": {"application/zip": {}}, "description": "Returns the original audio file."}
@@ -137,6 +143,7 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
 
 
 @router.get('/{job_id}/epub', response_class=FileResponse,
+            description='Get the epub of a scheduled or an ongoing job.',
             responses={
                 404: {"model": ErrorMessage},
                 200: {"content": {"application/epub+zip": {}}, "description": "Returns the original audio file."}
@@ -153,7 +160,7 @@ async def get_epub(job_id: str, _: str = Depends(get_username),
 
 
 @router.post('/{job_id}/failed', response_model=JobInfo, response_model_exclude_none=True,
-             description="Post error message and fail job.", status_code=202,
+             description="Post error message and cancel job.", status_code=202,
              responses={400: {"model": ErrorMessage}},
              dependencies=[Depends(check_uuid)],
              include_in_schema=False)

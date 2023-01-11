@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 async def _read_expired(session, current_time):
     statement = select(Job.job_id).filter(and_(
         Job.updated_at < current_time - datetime.timedelta(seconds=api_settings.expiration_threshold),
-        Job.state.in_([State.QUEUED, State.IN_PROGRESS, State.COMPLETED])
+        Job.state.in_([State.EXPIRED, State.ERROR])
     ))
 
     jobs = await session.execute(statement)
