@@ -73,21 +73,15 @@ async def create_job(response: Response,
         raise HTTPException(409, str(e))
 
 
-@router.post('/{job_id}/rerun', response_model=JobInfo, response_model_exclude_none=True,
+@router.post('/{job_id}/rerun', response_model=str, response_model_exclude_none=True,
              description="Rerun an already present ebook job.", status_code=202,
              responses={400: {"model": ErrorMessage}})
 async def create_job(response: Response,
                     job_id: str,
                     session: AsyncSession = Depends(database.get_session)):
-    try:
-        job_info = await database.read_job(session, job_id)
-    except Exception:
-        raise HTTPException(409, f"Job '{job_id}' is not present, cannot rerun.")
-    
     await database.update_job(session, job_id, State.QUEUED)
     await publish(job_id, file_extension="epub")
-
-    return job_info
+    return f'Job {job_id} requeued.'
 
 
 @router.get('/{job_id}', response_model=JobInfo, response_model_exclude_none=True,
@@ -105,10 +99,7 @@ async def get_job_info(job_id: str, session: AsyncSession = Depends(database.get
                        400: {"model": ErrorMessage}},
             dependencies=[Depends(check_uuid)])
 async def cancel_job(job_id: str, session: AsyncSession = Depends(database.get_session)):
-    try:
-        job_info = await database.read_job(session, job_id)
-    except:
-        return f'Job {job_id} not found.'
+    job_info = await database.read_job(session, job_id)
     if job_info.state in [State.QUEUED, State.IN_PROGRESS]:
         await database.update_job(session, job_id, State.ERROR, error_message="Job manually cancelled.")
         return f'Job {job_id} successfully cancelled.'
@@ -142,7 +133,7 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
         return FileResponse(file_path, filename=f"{job_id}.zip")
 
 
-@router.get('/{job_id}/epub', response_class=FileResponse,
+@router.get('/{job_id}/epub', response_class=Union[FileResponse, str],
             description='Get the epub of a scheduled or an ongoing job.',
             responses={
                 404: {"model": ErrorMessage},
@@ -153,6 +144,8 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
 async def get_epub(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
+    if job_info.state != State.EXPIRED:
+        return 'Job expired.'
     if job_info.state == State.QUEUED:
         await database.update_job(session, job_id, State.IN_PROGRESS)
     return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.epub"), filename=f"{job_id}.epub")
