@@ -58,8 +58,7 @@ async def health_check():
         conn = await db_engine.connect()
         await conn.close()
     except Exception as e:
-        print(e)
-        raise HTTPException(500)
+        raise HTTPException(500, str(e))
 
     return "OK"
 

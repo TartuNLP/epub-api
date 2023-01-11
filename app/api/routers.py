@@ -133,7 +133,7 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
         return FileResponse(file_path, filename=f"{job_id}.zip")
 
 
-@router.get('/{job_id}/epub', response_class=Union[FileResponse, str],
+@router.get('/{job_id}/epub', response_class=FileResponse,
             description='Get the epub of a scheduled or an ongoing job.',
             responses={
                 404: {"model": ErrorMessage},
@@ -144,8 +144,8 @@ async def get_audiobook(job_id: str, session: AsyncSession = Depends(database.ge
 async def get_epub(job_id: str, _: str = Depends(get_username),
                     session: AsyncSession = Depends(database.get_session)):
     job_info = await database.read_job(session, job_id)
-    if job_info.state != State.EXPIRED:
-        return 'Job expired.'
+    if job_info.state == State.EXPIRED:
+        return HTTPException(404, f'Job {job_id} expired.')
     if job_info.state == State.QUEUED:
         await database.update_job(session, job_id, State.IN_PROGRESS)
     return FileResponse(os.path.join(api_settings.storage_path, f"{job_id}.epub"), filename=f"{job_id}.epub")
