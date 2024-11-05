@@ -5,12 +5,15 @@ from socket import VM_SOCKETS_INVALID_VERSION
 class Speaker(str, Enum):
     Albert = "albert"
     Mari = "mari"
+    Indrek = "indrek"
+    Meelis = "meelis"
     Kalev = "kalev"
-    Vesta = "vesta"
+    Peeter = "peeter"
     Kylli = "kylli"
     Külli = "kylli"
-    Meelis = "meelis"
-
+    Tambet = "tambet"
+    Liivika = "liivika"
+    Vesta = "vesta"
 
 
 class State(str, Enum):
